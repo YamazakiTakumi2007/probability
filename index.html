@@ -169,6 +169,77 @@ rolls = rng.geometric(p, size=N)  # 最初の「1」までの回数</code></pre>
 <p class="caption">データを固定するには：列Aをコピー → 右クリック「値のみ貼り付け」。</p>
 </div>
 
+
+<h2>付録：シミュレーション実行用 Python コード（コピー＆ペーストOK）</h2>
+<div class="card">
+<p>下のコードを <code>dice_sim.py</code> などのファイルに保存して実行すると、<b>日本語ラベル付きのヒストグラム</b>と<b>理論比較グラフ</b>、<b>CSV</b>が生成されます。学内PCやGoogle Colabでも動きます（必要なライブラリ：<code>numpy</code>、<code>pandas</code>、<code>matplotlib</code>）。</p>
+<pre><code>import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 1) パラメータ（公平な6面サイコロ）
+N = 200_000           # 試行回数（行数）
+p = 1/6               # 「1」が出る確率
+rng = np.random.default_rng(42)  # 乱数の種（再現のため固定）
+
+# 2) シミュレーション：最初に「1」が出るまでの回数（幾何分布）
+rolls = rng.geometric(p, size=N)  # 1,2,3,... のいずれか
+
+# 3) 集計（平均、中央値、最頻値など）
+mean_emp = rolls.mean()
+median_emp = float(np.median(rolls))
+counts = np.bincount(rolls)[1:]    # index=0は未使用
+mode_k = counts.argmax() + 1       # 最頻値
+mode_count = int(counts[mode_k-1])
+mode_prob = mode_count / N
+
+print(f"試行回数     : {N:,d}")
+print(f"実測平均     : {mean_emp:.3f}")
+print(f"中央値       : {median_emp:.0f}")
+print(f"最頻値       : {mode_k} 回（度数 {mode_count:,d}、割合 {mode_prob*100:.2f}%）")
+print(f"理論平均     : {1/p:.3f} (= 1/p)")
+
+# 4) CSV保存（任意）
+pd.DataFrame({"trial": np.arange(1, N+1), "rolls_to_first_one": rolls}).to_csv("dice_first_one_results.csv", index=False)
+
+# 5) ヒストグラム（日本語ラベル）
+k95 = int(np.quantile(rolls, 0.99))
+k_max = max(20, min(60, k95))     # 見やすさのため上限を適度に制限
+bins = np.arange(0.5, k_max + 1.5, 1)
+
+plt.figure(figsize=(8, 5))
+plt.hist(rolls, bins=bins)  # 色はデフォルトのまま（指示に従い色指定はしない）
+plt.title("最初に「1」が出るまでの回数のヒストグラム")
+plt.xlabel("最初に「1」が出るまでの回数")
+plt.ylabel("度数（出現回数）")
+plt.grid(True, axis="y", linestyle="--", alpha=0.6)
+plt.tight_layout()
+plt.savefig("dice_first_one_hist_ja.png", dpi=160)
+plt.close()
+
+# 6) 実測と理論の比較（PMF）
+K = k_max
+k_vals = np.arange(1, K+1)
+pmf_th = (1-p)**(k_vals-1) * p
+counts_top = counts[:K]
+pmf_emp = counts_top / N
+
+plt.figure(figsize=(9, 5))
+plt.bar(k_vals, pmf_emp, label="実測確率 p(k)")
+plt.plot(k_vals, pmf_th, marker="o", linestyle="-", label="理論確率 p(k)（幾何分布, p=1/6）")
+plt.title("実測確率と理論確率の比較")
+plt.xlabel("k（最初に「1」が出るまでの回数）")
+plt.ylabel("確率")
+plt.legend()
+plt.grid(True, axis="y", linestyle="--", alpha=0.6)
+plt.tight_layout()
+plt.savefig("dice_first_one_pmf_ja.png", dpi=160)
+plt.close()
+</code></pre>
+<p class="caption">※色やスタイルの指定は行っていません。グラフは1枚ずつ作成しています。</p>
+</div>
+
+
 <h2>ダウンロード</h2>
 <ul>
   <li>生データ CSV：<code>dice_first_one_results.csv</code></li>
